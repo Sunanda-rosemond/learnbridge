@@ -8,6 +8,18 @@ import type { EmployeeRepository } from './modules/employees/employee.repository
 
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (
+    typeof error === 'object' &&
+    error !== null &&
+    'type' in error &&
+    error.type === 'entity.too.large'
+  ) {
+    res.status(413).json({
+      error: 'PAYLOAD_TOO_LARGE',
+      message: 'Request body exceeds the 1 MiB limit',
+    });
+    return;
+  }
+  if (
     error instanceof SyntaxError &&
     'type' in error &&
     error.type === 'entity.parse.failed'

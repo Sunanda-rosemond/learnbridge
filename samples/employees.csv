@@ -1,0 +1,7 @@
+﻿externalEmployeeId,workEmail,employmentStatus,managerExternalId
+CSV-MGR-100,manager@example.com,ACTIVE,
+CSV-EMP-204,rose@example.com,ACTIVE,CSV-MGR-100
+CSV-EMP-204,rose@example.com,ACTIVE,CSV-MGR-100
+CSV-EMP-300,other@example.com,ACTIVE,
+CSV-EMP-300,other@example.com,INACTIVE,
+CSV-EMP-400,not-an-email,ACTIVE,
