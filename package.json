@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/modules/employees/employee-provisioning.service.test.ts src/modules/employees/employees.http.test.ts",
     "test:db": "tsx --test src/modules/employees/postgres-employee.repository.test.ts",
-    "test:csv": "tsx --test src/modules/employees/employee-csv.test.ts"
+    "test:csv": "tsx --test src/modules/employees/employee-csv.test.ts",
+    "test:import:http": "tsx --test src/modules/employees/employee-import.http.test.ts"
   },
   "dependencies": {
     "csv-parse": "^7.0.2",
