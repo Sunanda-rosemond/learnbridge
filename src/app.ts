@@ -1,17 +1,9 @@
 import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 
-import { employeesRouter } from './modules/employees/employees.routes.js';
-
-export const app = express();
-
-app.use(express.json({ limit: '1mb' }));
-
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'learnbridge-api' });
-});
-
-app.use('/employees', employeesRouter);
+import { createEmployeesRouter } from './modules/employees/employees.routes.js';
+import { EmployeeProvisioningService } from './modules/employees/employee-provisioning.service.js';
+import { InMemoryEmployeeRepository } from './modules/employees/in-memory-employee.repository.js';
 
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (
@@ -33,4 +25,21 @@ const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   });
 };
 
-app.use(errorHandler);
+export function createApp() {
+  const app = express();
+
+  const repository = new InMemoryEmployeeRepository();
+  const service = new EmployeeProvisioningService(repository);
+
+  app.use(express.json({ limit: '1mb' }));
+
+  app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', service: 'learnbridge-api' });
+  });
+
+  app.use('/employees', createEmployeesRouter(service));
+
+  app.use(errorHandler);
+
+  return app;
+}
