@@ -175,7 +175,8 @@ test('PostgreSQL: concurrent identical provisioning creates one employee', async
   const racingRepository: EmployeeRepository = {
     findByExternalIdentity: (tenantId, sourceSystem, externalId) =>
       repository.findByExternalIdentity(tenantId, sourceSystem, externalId),
-
+    resolvePendingManagerLinks: (manager) =>
+      repository.resolvePendingManagerLinks(manager),
     async save(employee) {
       arrivals += 1;
 
@@ -225,4 +226,54 @@ test('PostgreSQL: concurrent identical provisioning creates one employee', async
 
   assert.equal(rows.rowCount, 1);
   assert.equal(rows.rows[0]!.id, results[0]!.employee.id);
+});
+test('PostgreSQL: resolves pending managers only within the same tenant and source', async () => {
+  const manager = makeEmployee();
+
+  const waiting = makeEmployee({
+    managerExternalId: manager.externalEmployeeId,
+  });
+
+  const otherTenant = makeEmployee({
+    tenantId: tenantB,
+    managerExternalId: manager.externalEmployeeId,
+  });
+
+  const otherSource = makeEmployee({
+    sourceSystem: 'another-hr',
+    managerExternalId: manager.externalEmployeeId,
+  });
+
+  // Employees arrive before the manager.
+  await repository.save(waiting);
+  await repository.save(otherTenant);
+  await repository.save(otherSource);
+
+  await repository.save(manager);
+
+  const resolved = await repository.resolvePendingManagerLinks(manager);
+
+  assert.equal(resolved, 1);
+
+  for (const original of [waiting, otherTenant, otherSource]) {
+    const stored = await repository.findByExternalIdentity(
+      original.tenantId,
+      original.sourceSystem,
+      original.externalEmployeeId,
+    );
+
+    assert.ok(stored);
+
+    if (original.id === waiting.id) {
+      assert.equal(stored.managerId, manager.id);
+      assert.equal(stored.managerExternalId, manager.externalEmployeeId);
+      assert.deepEqual(stored.createdAt, original.createdAt);
+    } else {
+      assert.deepEqual(stored, original);
+    }
+  }
+
+  const resolvedAgain = await repository.resolvePendingManagerLinks(manager);
+
+  assert.equal(resolvedAgain, 0);
 });

@@ -117,3 +117,38 @@ test('omitting a manager preserves the relationship; null removes it', async () 
   assert.equal(cleared.employee.managerExternalId, null);
   assert.equal(cleared.employee.managerId, null);
 });
+test('resolves a waiting employee when their manager arrives later', async () => {
+  const { repository, service } = setup();
+
+  const first = await service.execute({
+    ...command,
+    managerExternalId: 'EMP-100',
+  });
+
+  assert.equal(first.employee.managerId, null);
+  assert.equal(first.employee.managerExternalId, 'EMP-100');
+
+  const manager = await service.execute({
+    ...command,
+    externalEmployeeId: 'EMP-100',
+    workEmail: 'manager@example.com',
+  });
+
+  const employee = await repository.findByExternalIdentity(
+    command.tenantId,
+    command.sourceSystem,
+    command.externalEmployeeId,
+  );
+
+  assert.ok(employee);
+  assert.equal(employee.id, first.employee.id);
+  assert.equal(employee.managerId, manager.employee.id);
+  assert.deepEqual(employee.createdAt, first.employee.createdAt);
+
+  // Repeating reconciliation should perform no further updates.
+  const resolvedAgain = await repository.resolvePendingManagerLinks(
+    manager.employee,
+  );
+
+  assert.equal(resolvedAgain, 0);
+});

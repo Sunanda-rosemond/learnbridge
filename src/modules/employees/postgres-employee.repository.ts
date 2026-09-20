@@ -107,4 +107,26 @@ export class PostgresEmployeeRepository implements EmployeeRepository {
       throw error;
     }
   }
+  async resolvePendingManagerLinks(manager: Employee): Promise<number> {
+    const result = await this.pool.query(
+      `
+      UPDATE employees
+      SET manager_id = $1,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE tenant_id = $2
+        AND source_system = $3
+        AND manager_external_id = $4
+        AND manager_id IS NULL
+        AND id <> $1
+    `,
+      [
+        manager.id,
+        manager.tenantId,
+        manager.sourceSystem,
+        manager.externalEmployeeId,
+      ],
+    );
+
+    return result.rowCount ?? 0;
+  }
 }

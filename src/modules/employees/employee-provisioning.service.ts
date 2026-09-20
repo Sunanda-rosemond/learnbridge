@@ -88,14 +88,20 @@ export class EmployeeProvisioningService {
   async execute(
     command: ProvisionEmployeeCommand,
   ): Promise<ProvisionEmployeeResult> {
+    let result: ProvisionEmployeeResult;
+
     try {
-      return await this.provisionOnce(command);
+      result = await this.provisionOnce(command);
     } catch (error: unknown) {
       if (!(error instanceof EmployeeIdentityConflictError)) {
         throw error;
       }
 
-      return this.provisionOnce(command);
+      result = await this.provisionOnce(command);
     }
+
+    await this.repository.resolvePendingManagerLinks(result.employee);
+
+    return result;
   }
 }

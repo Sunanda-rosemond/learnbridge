@@ -8,4 +8,5 @@ export interface EmployeeRepository {
   ): Promise<Employee | null>;
 
   save(employee: Employee): Promise<void>;
+  resolvePendingManagerLinks(manager: Employee): Promise<number>;
 }

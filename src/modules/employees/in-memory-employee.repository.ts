@@ -25,4 +25,29 @@ export class InMemoryEmployeeRepository implements EmployeeRepository {
   async save(employee: Employee): Promise<void> {
     this.employees.set(employee.id, structuredClone(employee));
   }
+  async resolvePendingManagerLinks(manager: Employee): Promise<number> {
+    let resolved = 0;
+    const now = new Date();
+
+    for (const employee of this.employees.values()) {
+      const matches =
+        employee.tenantId === manager.tenantId &&
+        employee.sourceSystem === manager.sourceSystem &&
+        employee.managerExternalId === manager.externalEmployeeId &&
+        employee.managerId === null &&
+        employee.id !== manager.id;
+
+      if (!matches) continue;
+
+      this.employees.set(employee.id, {
+        ...employee,
+        managerId: manager.id,
+        updatedAt: now,
+      });
+
+      resolved += 1;
+    }
+
+    return resolved;
+  }
 }
