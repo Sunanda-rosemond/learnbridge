@@ -12,9 +12,11 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/modules/employees/employee-provisioning.service.test.ts src/modules/employees/employees.http.test.ts",
-    "test:db": "tsx --test src/modules/employees/postgres-employee.repository.test.ts"
+    "test:db": "tsx --test src/modules/employees/postgres-employee.repository.test.ts",
+    "test:csv": "tsx --test src/modules/employees/employee-csv.test.ts"
   },
   "dependencies": {
+    "csv-parse": "^7.0.2",
     "dotenv": "^18.0.1",
     "express": "^5.2.1",
     "pg": "^8.23.0",
