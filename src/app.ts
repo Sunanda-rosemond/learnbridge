@@ -4,6 +4,7 @@ import type { ErrorRequestHandler } from 'express';
 import { createEmployeesRouter } from './modules/employees/employees.routes.js';
 import { EmployeeProvisioningService } from './modules/employees/employee-provisioning.service.js';
 import { InMemoryEmployeeRepository } from './modules/employees/in-memory-employee.repository.js';
+import type { EmployeeRepository } from './modules/employees/employee.repository.js';
 
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (
@@ -25,10 +26,11 @@ const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   });
 };
 
-export function createApp() {
+export function createApp(
+  repository: EmployeeRepository = new InMemoryEmployeeRepository(),
+) {
   const app = express();
 
-  const repository = new InMemoryEmployeeRepository();
   const service = new EmployeeProvisioningService(repository);
 
   app.use(express.json({ limit: '1mb' }));
