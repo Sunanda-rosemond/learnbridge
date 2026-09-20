@@ -7,6 +7,9 @@ import { after, before, test } from 'node:test';
 import { createDatabasePool } from '../../database/pool.js';
 import { PostgresEmployeeRepository } from './postgres-employee.repository.js';
 import type { Employee } from './employee.types.js';
+import { EmployeeIdentityConflictError } from './employee.errors.js';
+import { EmployeeProvisioningService } from './employee-provisioning.service.js';
+import type { EmployeeRepository } from './employee.repository.js';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 
@@ -102,10 +105,15 @@ test('PostgreSQL: prevents duplicate external identities within a tenant', async
     id: randomUUID(),
   };
 
-  await assert.rejects(() => repository.save(duplicate), {
-    code: '23505',
-    constraint: 'employees_external_identity_unique',
-  });
+  // await assert.rejects(() => repository.save(duplicate), {
+  //   code: '23505',
+  //   constraint: 'employees_external_identity_unique',
+  // });
+
+  await assert.rejects(
+    () => repository.save(duplicate),
+    EmployeeIdentityConflictError,
+  );
 
   // The same external identity is allowed in another tenant.
   const otherTenantEmployee = {
@@ -154,4 +162,67 @@ test('PostgreSQL: allows a same-tenant manager and rejects a cross-tenant manage
     code: '23503',
     constraint: 'employees_manager_same_tenant_fk',
   });
+});
+
+test('PostgreSQL: concurrent identical provisioning creates one employee', async () => {
+  let arrivals = 0;
+  let release: () => void = () => {};
+
+  const bothReady = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  const racingRepository: EmployeeRepository = {
+    findByExternalIdentity: (tenantId, sourceSystem, externalId) =>
+      repository.findByExternalIdentity(tenantId, sourceSystem, externalId),
+
+    async save(employee) {
+      arrivals += 1;
+
+      if (arrivals === 2) {
+        release();
+      }
+
+      // Both requests must reach save before either can insert.
+      await bothReady;
+
+      await repository.save(employee);
+    },
+  };
+
+  const service = new EmployeeProvisioningService(racingRepository);
+
+  const command = {
+    tenantId: tenantA,
+    sourceSystem: 'test-hr',
+    externalEmployeeId: `RACE-${randomUUID()}`,
+    workEmail: 'race@example.com',
+    employmentStatus: 'ACTIVE' as const,
+  };
+
+  const results = await Promise.all([
+    service.execute(command),
+    service.execute(command),
+  ]);
+
+  assert.deepEqual(results.map((result) => result.outcome).sort(), [
+    'CREATED',
+    'UNCHANGED',
+  ]);
+
+  assert.equal(results[0]!.employee.id, results[1]!.employee.id);
+
+  const rows = await pool.query<{ id: string }>(
+    `
+      SELECT id
+      FROM employees
+      WHERE tenant_id = $1
+        AND source_system = $2
+        AND external_employee_id = $3
+    `,
+    [command.tenantId, command.sourceSystem, command.externalEmployeeId],
+  );
+
+  assert.equal(rows.rowCount, 1);
+  assert.equal(rows.rows[0]!.id, results[0]!.employee.id);
 });

@@ -5,11 +5,12 @@ import type {
   ProvisionEmployeeCommand,
   ProvisionEmployeeResult,
 } from './employee.types.js';
+import { EmployeeIdentityConflictError } from './employee.errors.js';
 
 export class EmployeeProvisioningService {
   constructor(private readonly repository: EmployeeRepository) {}
 
-  async execute(
+  private async provisionOnce(
     command: ProvisionEmployeeCommand,
   ): Promise<ProvisionEmployeeResult> {
     const existing = await this.repository.findByExternalIdentity(
@@ -83,5 +84,18 @@ export class EmployeeProvisioningService {
     await this.repository.save(employee);
 
     return { outcome: 'UPDATED', employee };
+  }
+  async execute(
+    command: ProvisionEmployeeCommand,
+  ): Promise<ProvisionEmployeeResult> {
+    try {
+      return await this.provisionOnce(command);
+    } catch (error: unknown) {
+      if (!(error instanceof EmployeeIdentityConflictError)) {
+        throw error;
+      }
+
+      return this.provisionOnce(command);
+    }
   }
 }

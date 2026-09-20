@@ -2,6 +2,7 @@ import type { Pool } from 'pg';
 
 import type { EmployeeRepository } from './employee.repository.js';
 import type { Employee, EmploymentStatus } from './employee.types.js';
+import { EmployeeIdentityConflictError } from './employee.errors.js';
 
 type EmployeeRow = {
   id: string;
@@ -56,8 +57,9 @@ export class PostgresEmployeeRepository implements EmployeeRepository {
   }
 
   async save(employee: Employee): Promise<void> {
-    await this.pool.query(
-      `
+    try {
+      await this.pool.query(
+        `
         INSERT INTO employees (
           id,
           tenant_id,
@@ -78,18 +80,31 @@ export class PostgresEmployeeRepository implements EmployeeRepository {
           manager_id = EXCLUDED.manager_id,
           updated_at = EXCLUDED.updated_at
       `,
-      [
-        employee.id,
-        employee.tenantId,
-        employee.sourceSystem,
-        employee.externalEmployeeId,
-        employee.workEmail,
-        employee.employmentStatus,
-        employee.managerExternalId,
-        employee.managerId,
-        employee.createdAt,
-        employee.updatedAt,
-      ],
-    );
+        [
+          employee.id,
+          employee.tenantId,
+          employee.sourceSystem,
+          employee.externalEmployeeId,
+          employee.workEmail,
+          employee.employmentStatus,
+          employee.managerExternalId,
+          employee.managerId,
+          employee.createdAt,
+          employee.updatedAt,
+        ],
+      );
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === '23505' &&
+        'constraint' in error &&
+        error.constraint === 'employees_external_identity_unique'
+      ) {
+        throw new EmployeeIdentityConflictError();
+      }
+      throw error;
+    }
   }
 }
