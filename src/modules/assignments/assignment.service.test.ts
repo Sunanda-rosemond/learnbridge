@@ -167,3 +167,47 @@ test('returns an existing assignment unchanged after course deactivation', async
 
   assert.equal(await assignments.findExisting(nextCycle), null);
 });
+test('rejects an employee belonging to another tenant', async () => {
+  const { service, assignments, provisioning, command } = await setup();
+
+  const otherEmployee = await provisioning.execute({
+    tenantId: 'tenant-2',
+    sourceSystem: 'test-hr',
+    externalEmployeeId: 'EMP-999',
+    workEmail: 'other@example.com',
+    employmentStatus: 'ACTIVE',
+  });
+
+  const crossTenantCommand = {
+    ...command,
+    employeeId: otherEmployee.employee.id,
+  };
+
+  await assert.rejects(() => service.assign(crossTenantCommand), {
+    name: 'AssignmentError',
+    code: 'EMPLOYEE_NOT_FOUND',
+  });
+
+  assert.equal(await assignments.findExisting(crossTenantCommand), null);
+});
+
+test('rejects a course belonging to another tenant', async () => {
+  const { service, assignments, courseService, command } = await setup();
+
+  const otherCourse = await courseService.create({
+    tenantId: 'tenant-2',
+    title: 'Another Employer’s Training',
+  });
+
+  const crossTenantCommand = {
+    ...command,
+    courseId: otherCourse.id,
+  };
+
+  await assert.rejects(() => service.assign(crossTenantCommand), {
+    name: 'AssignmentError',
+    code: 'COURSE_NOT_FOUND',
+  });
+
+  assert.equal(await assignments.findExisting(crossTenantCommand), null);
+});
