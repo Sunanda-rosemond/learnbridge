@@ -220,3 +220,50 @@ test('PostgreSQL assignments: waits for deactivation and rejects the inactive co
     }
   }
 });
+test('PostgreSQL assignments: concurrent requests produce one assignment', async () => {
+  const { assignment } = await setupAssignment();
+
+  const secondCandidate: LearningAssignment = {
+    ...assignment,
+    id: randomUUID(),
+  };
+
+  const results = await Promise.all([
+    assignments.createIfAbsent(assignment),
+    assignments.createIfAbsent(secondCandidate),
+  ]);
+
+  assert.deepEqual(results.map((result) => result.outcome).sort(), [
+    'CREATED',
+    'UNCHANGED',
+  ]);
+
+  const created = results.find((result) => result.outcome === 'CREATED');
+
+  const unchanged = results.find((result) => result.outcome === 'UNCHANGED');
+
+  assert.ok(created);
+  assert.ok(unchanged);
+
+  assert.deepEqual(unchanged.assignment, created.assignment);
+
+  const stored = await pool.query<{ id: string }>(
+    `
+      SELECT id
+      FROM learning_assignments
+      WHERE tenant_id = $1
+        AND employee_id = $2
+        AND course_id = $3
+        AND training_cycle = $4
+    `,
+    [
+      assignment.tenantId,
+      assignment.employeeId,
+      assignment.courseId,
+      assignment.trainingCycle,
+    ],
+  );
+
+  assert.equal(stored.rowCount, 1);
+  assert.equal(stored.rows[0]!.id, created.assignment.id);
+});
