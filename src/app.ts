@@ -8,6 +8,7 @@ import type { EmployeeRepository } from './modules/employees/employee.repository
 import { CourseService } from './modules/courses/course.service.js';
 import { InMemoryCourseRepository } from './modules/courses/in-memory-course.repository.js';
 import { createCoursesRouter } from './modules/courses/courses.routes.js';
+import type { CourseRepository } from './modules/courses/course.repository.js';
 
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (
@@ -43,11 +44,11 @@ const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
 
 export function createApp(
   repository: EmployeeRepository = new InMemoryEmployeeRepository(),
+  courseRepository: CourseRepository = new InMemoryCourseRepository(),
 ) {
   const app = express();
 
   const service = new EmployeeProvisioningService(repository);
-  const courseRepository = new InMemoryCourseRepository();
   const courseService = new CourseService(courseRepository);
 
   app.use(express.json({ limit: '1mb' }));

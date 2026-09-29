@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createApp } from './app.js';
 import { createDatabasePool } from './database/pool.js';
 import { PostgresEmployeeRepository } from './modules/employees/postgres-employee.repository.js';
+import { PostgresCourseRepository } from './modules/courses/postgres-course.repository.js';
 
 async function start(): Promise<void> {
   const connectionString = process.env.DATABASE_URL;
@@ -15,8 +16,11 @@ async function start(): Promise<void> {
   try {
     await pool.query('SELECT 1');
 
-    const repository = new PostgresEmployeeRepository(pool);
-    const app = createApp(repository);
+    const employeeRepository = new PostgresEmployeeRepository(pool);
+    const courseRepository = new PostgresCourseRepository(pool);
+
+    const app = createApp(employeeRepository, courseRepository);
+
     const port = Number(process.env.PORT ?? 3000);
 
     app.listen(port, () => {
