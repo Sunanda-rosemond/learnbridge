@@ -15,7 +15,8 @@
     "test:db": "tsx --test src/modules/employees/postgres-employee.repository.test.ts",
     "test:csv": "tsx --test src/modules/employees/employee-csv.test.ts",
     "test:import:http": "tsx --test src/modules/employees/employee-import.http.test.ts",
-    "test:courses": "tsx --test src/modules/courses/course.service.test.ts src/modules/courses/courses.http.test.ts"
+    "test:courses": "tsx --test src/modules/courses/course.service.test.ts src/modules/courses/courses.http.test.ts",
+    "test:courses:db": "tsx --test src/modules/courses/postgres-course.repository.test.ts"
   },
   "dependencies": {
     "csv-parse": "^7.0.2",
