@@ -5,6 +5,9 @@ import { createEmployeesRouter } from './modules/employees/employees.routes.js';
 import { EmployeeProvisioningService } from './modules/employees/employee-provisioning.service.js';
 import { InMemoryEmployeeRepository } from './modules/employees/in-memory-employee.repository.js';
 import type { EmployeeRepository } from './modules/employees/employee.repository.js';
+import { CourseService } from './modules/courses/course.service.js';
+import { InMemoryCourseRepository } from './modules/courses/in-memory-course.repository.js';
+import { createCoursesRouter } from './modules/courses/courses.routes.js';
 
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (
@@ -44,6 +47,8 @@ export function createApp(
   const app = express();
 
   const service = new EmployeeProvisioningService(repository);
+  const courseRepository = new InMemoryCourseRepository();
+  const courseService = new CourseService(courseRepository);
 
   app.use(express.json({ limit: '1mb' }));
 
@@ -52,6 +57,7 @@ export function createApp(
   });
 
   app.use('/employees', createEmployeesRouter(service));
+  app.use('/courses', createCoursesRouter(courseService));
 
   app.use(errorHandler);
 
