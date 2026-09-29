@@ -6,7 +6,7 @@ export interface EmployeeRepository {
     sourceSystem: string,
     externalEmployeeId: string,
   ): Promise<Employee | null>;
-
+  findById(tenantId: string, employeeId: string): Promise<Employee | null>;
   save(employee: Employee): Promise<void>;
   resolvePendingManagerLinks(manager: Employee): Promise<number>;
 }

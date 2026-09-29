@@ -50,4 +50,16 @@ export class InMemoryEmployeeRepository implements EmployeeRepository {
 
     return resolved;
   }
+  async findById(
+    tenantId: string,
+    employeeId: string,
+  ): Promise<Employee | null> {
+    const employee = this.employees.get(employeeId);
+
+    if (!employee || employee.tenantId !== tenantId) {
+      return null;
+    }
+
+    return structuredClone(employee);
+  }
 }

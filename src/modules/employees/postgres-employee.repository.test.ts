@@ -177,6 +177,8 @@ test('PostgreSQL: concurrent identical provisioning creates one employee', async
       repository.findByExternalIdentity(tenantId, sourceSystem, externalId),
     resolvePendingManagerLinks: (manager) =>
       repository.resolvePendingManagerLinks(manager),
+    findById: (tenantId, employeeId) =>
+      repository.findById(tenantId, employeeId),
     async save(employee) {
       arrivals += 1;
 

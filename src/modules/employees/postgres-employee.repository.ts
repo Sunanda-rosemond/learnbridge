@@ -129,4 +129,22 @@ export class PostgresEmployeeRepository implements EmployeeRepository {
 
     return result.rowCount ?? 0;
   }
+  async findById(
+    tenantId: string,
+    employeeId: string,
+  ): Promise<Employee | null> {
+    const result = await this.pool.query<EmployeeRow>(
+      `
+      SELECT *
+      FROM employees
+      WHERE tenant_id = $1
+        AND id = $2
+    `,
+      [tenantId, employeeId],
+    );
+
+    const row = result.rows[0];
+
+    return row ? toEmployee(row) : null;
+  }
 }
