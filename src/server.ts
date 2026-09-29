@@ -3,6 +3,7 @@ import { createApp } from './app.js';
 import { createDatabasePool } from './database/pool.js';
 import { PostgresEmployeeRepository } from './modules/employees/postgres-employee.repository.js';
 import { PostgresCourseRepository } from './modules/courses/postgres-course.repository.js';
+import { PostgresAssignmentRepository } from './modules/assignments/postgres-assignment.repository.js';
 
 async function start(): Promise<void> {
   const connectionString = process.env.DATABASE_URL;
@@ -18,8 +19,13 @@ async function start(): Promise<void> {
 
     const employeeRepository = new PostgresEmployeeRepository(pool);
     const courseRepository = new PostgresCourseRepository(pool);
+    const assignmentRepository = new PostgresAssignmentRepository(pool);
 
-    const app = createApp(employeeRepository, courseRepository);
+    const app = createApp(
+      employeeRepository,
+      courseRepository,
+      assignmentRepository,
+    );
 
     const port = Number(process.env.PORT ?? 3000);
 

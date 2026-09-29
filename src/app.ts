@@ -9,6 +9,10 @@ import { CourseService } from './modules/courses/course.service.js';
 import { InMemoryCourseRepository } from './modules/courses/in-memory-course.repository.js';
 import { createCoursesRouter } from './modules/courses/courses.routes.js';
 import type { CourseRepository } from './modules/courses/course.repository.js';
+import { AssignmentService } from './modules/assignments/assignment.service.js';
+import { InMemoryAssignmentRepository } from './modules/assignments/in-memory-assignment.repository.js';
+import { createAssignmentsRouter } from './modules/assignments/assignments.routes.js';
+import type { AssignmentRepository } from './modules/assignments/assignment.repository.js';
 
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (
@@ -45,11 +49,18 @@ const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
 export function createApp(
   repository: EmployeeRepository = new InMemoryEmployeeRepository(),
   courseRepository: CourseRepository = new InMemoryCourseRepository(),
+  assignmentRepository: AssignmentRepository = new InMemoryAssignmentRepository(),
 ) {
   const app = express();
 
   const service = new EmployeeProvisioningService(repository);
   const courseService = new CourseService(courseRepository);
+
+  const assignmentService = new AssignmentService(
+    assignmentRepository,
+    repository,
+    courseRepository,
+  );
 
   app.use(express.json({ limit: '1mb' }));
 
@@ -59,7 +70,7 @@ export function createApp(
 
   app.use('/employees', createEmployeesRouter(service));
   app.use('/courses', createCoursesRouter(courseService));
-
+  app.use('/assignments', createAssignmentsRouter(assignmentService));
   app.use(errorHandler);
 
   return app;
